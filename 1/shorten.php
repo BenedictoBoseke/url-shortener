@@ -7,22 +7,31 @@ if ($conn->connect_error) {
 
 function incrementVisitCount($conn, $shortCode) {
     $sql = "UPDATE urls SET visit_count = visit_count + 1 WHERE short_code = '$shortCode'";
-    $conn->query($sql);
+    // Prepared statement
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $shortCode);
+    $stmt->execute();
+    $stmt->close();
 }
 
 if (isset($_POST["submit"])) {
     $longURL = $_POST['url'];
 
-    $shortCode = substr(md5($longURL . time()), 0, 6);
+    // Secure short code
+    $shortCode = substr(hash("sha256", $longURL . time()), 0, 6);
 
-    $sql = "INSERT INTO urls (short_code, original_url, visit_count) VALUES ('$shortCode', '$longURL', 0)";
-    if ($conn->query($sql) === TRUE) {
-        // Display the shortened URL to the user
+    // Menggunakan prepared statement
+    $sql = "INSERT INTO urls * VALUES ('$shortCode', '$longURL', 0)";
+    $stmt = $conn -> prepare($sql);
+    $stmt -> bind_param("ss", $shortCode, $longURL);
+
+    if ($stmt->execute()) {
         $shortURL = "localhost:3000/" . $shortCode;
-        echo "Shortened URL: <a href='$shortURL'>$shortURL</a>";
+        echo "Shortened URL: <a href='" . htmlspecialchars($shortURL, ENT_QUOTES, 'UTF-8') . "'>$shortURL</a>";
     } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+        echo "Error: " . $stmt->error;
     }
+    $stmt->close();
 }
 
 $sql = "SELECT short_code, original_url, visit_count FROM urls";

@@ -7,21 +7,32 @@ if ($conn->connect_error) {
 if (isset($_POST["submit"])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
-    $result = mysqli_query($conn, "SELECT * FROM cred WHERE username = '$username'");
-    $row = mysqli_fetch_assoc($result);
-    if(mysqli_num_rows($result) > 0){
-        if($password == $row["password"]){
+
+    // Prepared Statement
+    $stmt = $conn->prepare("SELECT * FROM shortener WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($id, $storedUsername, $hashedPassword);
+        $stmt->fetch();
+
+        // Verify password pakai password_verify()
+        if (password_verify($password, $hashedPassword)) {
             $_SESSION["login"] = true;
-            $_SESSION["id"] = $row["id"];
+            $_SESSION["id"] = $id;
             header("Location: home.php");
+            exit();
         } else {
             echo "<script>alert('Wrong Password');</script>";
         }
     } else {
         echo "<script>alert('User Not Registered');</script>";
     }
-}
 
+    $stmt->close();
+}
 $conn->close();
 ?>
 

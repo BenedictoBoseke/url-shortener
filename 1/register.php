@@ -9,13 +9,22 @@ if (isset($_POST["submit"])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $sql = "INSERT INTO cred (user_id, username, password) VALUES ('', '$username', '$password')";
-    if ($conn->query($sql) === TRUE) {
-        echo "<script>alert('Login Successful'); window.location.href='login.php';</script>";
+    // Password Hash dan Salt
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+    // Prepared Statement
+    $sql = "INSERT INTO shortener (user_id, username, password) VALUES (NULL, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $username, $hashedPassword);
+
+    if ($stmt->execute()) {
+        echo "<script>alert('Registration Successful'); window.location.href='login.php';</script>";
         exit();
     } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+        echo "Error: " . $stmt->error;
     }
+
+    $stmt->close();
 }
 
 $conn->close();
